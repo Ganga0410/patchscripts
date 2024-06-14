@@ -1,0 +1,32 @@
+---
+- name: Patching Playbook
+  hosts: all
+  become: true
+  tasks:
+  - name: Performing the Pre-check Operations
+    script: /home/patil/precheck.sh
+    args:
+      creates: /home/patil/precheck.sh
+
+  - name: Applying all the available patch
+    yum:
+     name: "*"
+     state: latest
+
+  - name: Rebooting the servers
+    reboot:
+      reboot_timeout: 6000
+  - name: Performing the post-check operations
+    script: /home/patil/postcheck.sh
+    args:
+      creates: /home/patil/postcheck.sh
+
+  - name: Finding the Pre and Post check result files
+    shell: (cd /home/patil; find . -maxdepth 1 -type f -iname "*.txt" ) | cut -d  '/' -f2
+    register: files_to_fetch
+
+  - name: Fetching the result files
+    fetch:
+      src: /home/patil/{{ item }}
+      dest: /home/patil
+    with_items: "{{ files_to_fetch.stdout_lines }}"
